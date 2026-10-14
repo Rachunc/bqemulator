@@ -1683,11 +1683,13 @@ def _register_external_tables(
     table_definitions: dict[str, Any],
     ctx: AppContext,
 ) -> tuple[str, list[str]]:
-    """Expose ``tableDefinitions`` entries as DuckDB temp views over their ``sourceUris``.
+    """Expose ``tableDefinitions`` entries as DuckDB views over their ``sourceUris``.
 
     Each view gets a per-job name so concurrent jobs reusing the same
     definition name don't collide, and bare references to the definition
-    name in ``bq_sql`` are rewritten to it. Only NEWLINE_DELIMITED_JSON
+    name in ``bq_sql`` are rewritten to it. The views are regular, not
+    ``TEMP``: the query runs on the engine's query cursor, which does not
+    see the main connection's temp objects. Only NEWLINE_DELIMITED_JSON
     with an explicit schema is supported.
     """
     from bqemulator.storage.type_map import bq_schema_to_duckdb_columns
@@ -1716,7 +1718,7 @@ def _register_external_tables(
         compression = "gzip" if definition.get("compression") == "GZIP" else "auto_detect"
         view = f"_bqemu_ext_{job_tag}_{name}"
         create_sql = (
-            f'CREATE OR REPLACE TEMP VIEW "{view}" AS SELECT * FROM read_json('
+            f'CREATE OR REPLACE VIEW "{view}" AS SELECT * FROM read_json('
             f"[{', '.join(repr(p) for p in paths)}], format='newline_delimited', "
             f"compression='{compression}', columns={{{columns_sql}}})"
         )
