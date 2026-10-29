@@ -138,6 +138,14 @@ class DuckDBEngine:
         conn = self.connection
         return conn.execute(sql, parameters) if parameters is not None else conn.execute(sql)
 
+    def has_view(self, schema: str, name: str) -> bool:
+        """Return True iff DuckDB holds a view ``schema.name`` (unquoted ids)."""
+        row = self.execute(
+            "SELECT 1 FROM duckdb_views() WHERE schema_name = ? AND view_name = ? LIMIT 1",
+            [schema, name],
+        ).fetchone()
+        return row is not None
+
     def fetch_arrow(self, sql: str, parameters: list[Any] | None = None) -> pa.Table:
         """Execute and fetch results as a pyarrow.Table.
 

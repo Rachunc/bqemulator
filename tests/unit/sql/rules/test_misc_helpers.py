@@ -271,6 +271,26 @@ class TestArrayAggIgnoreNullsRewriter:
         )
         assert row == ([1, 2, 4, 5, 5],)
 
+    def test_with_order_by_limit(self, t: SQLTranslator, con: duckdb.DuckDBPyConnection) -> None:
+        con.execute("CREATE TABLE t (tag_id INT, ts INT)")
+        con.execute("INSERT INTO t VALUES (NULL, 9), (7, 5), (3, 8), (NULL, 10)")
+        row = _execute(
+            t,
+            con,
+            "SELECT ARRAY_AGG(tag_id IGNORE NULLS ORDER BY ts DESC LIMIT 1)[SAFE_OFFSET(0)] AS v FROM t",
+        )
+        assert row == (3,)
+
+    def test_with_distinct(self, t: SQLTranslator, con: duckdb.DuckDBPyConnection) -> None:
+        con.execute("CREATE TABLE t (s VARCHAR)")
+        con.execute("INSERT INTO t VALUES ('b'), (NULL), ('a'), ('b')")
+        row = _execute(
+            t,
+            con,
+            "SELECT ARRAY_AGG(DISTINCT s IGNORE NULLS ORDER BY s) AS arr FROM t",
+        )
+        assert row == (["a", "b"],)
+
 
 class TestSha512Rule:
     """``SHA512(x)`` → ``bqemu_sha512(x)`` (pre-translator)."""

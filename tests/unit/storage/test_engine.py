@@ -69,6 +69,19 @@ class TestExecute:
         finally:
             await engine.stop()
 
+    async def test_has_view(self, ephemeral_settings: Settings) -> None:
+        engine = DuckDBEngine(ephemeral_settings)
+        await engine.start()
+        try:
+            engine.execute('CREATE SCHEMA "p__ds"')
+            engine.execute('CREATE TABLE "p__ds"."t" (x INTEGER)')
+            engine.execute('CREATE VIEW "p__ds"."v" AS SELECT * FROM "p__ds"."t"')
+            assert engine.has_view("p__ds", "v")
+            assert not engine.has_view("p__ds", "t")
+            assert not engine.has_view("p__ds", "missing")
+        finally:
+            await engine.stop()
+
 
 @pytest.mark.asyncio
 class TestFetchArrowOffLoop:

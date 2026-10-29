@@ -364,8 +364,15 @@ class JSONExtractToStringRule(TranslationRule):
     name = "JSON_QUERY"
 
     def applies_to(self, node: exp.Expression) -> bool:
-        """Match ``exp.JSONExtract`` nodes — DuckDB-side ``->`` operator."""
-        return isinstance(node, exp.JSONExtract)
+        """Match ``exp.JSONExtract`` nodes — DuckDB-side ``->`` operator.
+
+        Skips nodes already cast to text, e.g. by the ``rewrite_json_helpers``
+        pre-translator.
+        """
+        if not isinstance(node, exp.JSONExtract):
+            return False
+        parent = node.parent
+        return not (isinstance(parent, exp.Cast) and _is_text_type(parent.to))
 
     def rewrite(self, node: exp.Expression) -> exp.Expression:
         """Wrap the extract result in ``CAST(... AS VARCHAR)``."""
